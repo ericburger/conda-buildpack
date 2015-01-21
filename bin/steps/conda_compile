@@ -1,5 +1,5 @@
 if [ ! -d /app/.heroku/miniconda ]; then
-    puts-step "Preparing Python/Miniconda Environment (3.5.2)"
+    puts-step "Preparing Python/Miniconda Environment (3.7.3)"
     curl -Os http://repo.continuum.io/miniconda/Miniconda-3.7.3-Linux-x86_64.sh
     bash Miniconda-3.7.3-Linux-x86_64.sh  -p /app/.heroku/miniconda/ -b | indent
     rm -fr Miniconda-3.7.3-Linux-x86_64.sh
@@ -16,6 +16,26 @@ fi
 if [ -f requirements.txt ]; then
     puts-step "Installing dependencies using Pip"
     pip install -r requirements.txt  --exists-action=w --allow-all-external | indent
+fi
+
+# Custom Requirements
+# Current options:
+# cvxopt-atlas
+if [ -f custom-requirements.txt ]; then
+    puts-step "Installing custom dependencies"
+    while read line; do
+        # Check for cvxopt
+        if [ "cvxopt-atlas" = $line ]; then
+            puts-step "Installing CVXOPT with ATLAS"
+            
+            puts-step "Requires ATLAS"
+            conda install atlas --yes
+ 
+            # Install CVXOPT with ATLAS instead of standard BLAS + LAPACK
+            CVXOPT_BLAS_LIB_DIR="/app/.heroku/miniconda/lib" CVXOPT_BLAS_LIB="f77blas,cblas,atlas,gfortran" pip install cvxopt
+        fi
+        
+    done < custom-requirements.txt
 fi
 
 # Clean up the installation environment .
